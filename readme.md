@@ -2,9 +2,18 @@
 
 This program allows you to automatically open all currently available Winterfest presents.
 
+---
+### Changelog:
+What's new in the 1.0.1 update:
+- Made the program open presents significantly faster using threading.
+- Tweaked the program's code a little bit.
+---
+
 ### How to use it?
 
-- After starting the WinterfestPresentOpener.py for the first time you will be asked if you are logged into your Epic account in your browser. If yes, type 1, if no, type 2.
+- If you didn't do it yet, install the python requests module using the pip install requests console command.
+
+- After starting the WinterfestPresentOpener.py for the first time or after you delete the auth.json file, you will be asked if you are logged into your Epic account in your browser. If yes, type 1. If not, type 2.
 
 - After you'll press ENTER, an Epic Games website will open. From there, login if you are not already logged into your Epic account.
 

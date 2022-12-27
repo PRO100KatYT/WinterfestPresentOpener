@@ -1,4 +1,4 @@
-version = "1.0.0"
+version = "1.0.1"
 print(f"Winterfest Present Opener v{version} by PRO100KatYT\n")
 try:
     import json
@@ -6,6 +6,7 @@ try:
     import os
     from datetime import datetime
     import webbrowser
+    import threading
 except Exception as emsg:
     input(f"ERROR: {emsg}. To run this program, please install it.\n\nPress ENTER to close the program.")
     exit()
@@ -20,7 +21,9 @@ class links:
     profileRequest = "https://fortnite-public-service-prod11.ol.epicgames.com/fortnite/api/game/v2/profile/{0}/client/{1}?profileId=athena"
 
 # Global variables
-class vars: accessToken = displayName = headers = accountId = ""
+class vars:
+    accessToken = displayName = headers = accountId = ""
+    presentsCount = presentsOpened = 0
 
 # Start a new requests session.
 session = requests.Session()
@@ -85,7 +88,7 @@ def auth():
     reqExchange = requestText(session.get(links.getOAuth.format("exchange"), headers={"Authorization": f"bearer {reqRefreshToken['access_token']}"}, data={"grant_type": "authorization_code"}), True)
     reqToken = requestText(session.post(links.getOAuth.format("token"), headers={"Authorization": "basic MzQ0NmNkNzI2OTRjNGE0NDg1ZDgxYjc3YWRiYjIxNDE6OTIwOWQ0YTVlMjVhNDU3ZmI5YjA3NDg5ZDMxM2I0MWE="}, data={"grant_type": "exchange_code", "exchange_code": reqExchange["code"], "token_type": "eg1"}), True)
     vars.accessToken, vars.displayName = [reqToken['access_token'], reqToken['displayName']]
-    vars.headers = {"User-Agent": "Fortnite/++Fortnite+Release-19.40-CL-19215531 Windows/10.0.19043.1.768.64bit", "Authorization": f"bearer {vars.accessToken}", "Content-Type": "application/json", "X-EpicGames-Language": "en", "Accept-Language": "en", "X-EpicGames-ProfileRevisions": json.dumps([{"profileId":"athena","clientCommandRevision":-1}])}
+    vars.headers = {"User-Agent": "Fortnite/++Fortnite+Release-19.40-CL-19215531 Windows/10.0.19043.1.768.64bit", "Authorization": f"bearer {vars.accessToken}", "Content-Type": "application/json", "X-EpicGames-Language": "en", "Accept-Language": "en"}
     print(f"Logged in as {vars.displayName}.\n")
 
 # The main part of the program
@@ -100,26 +103,29 @@ def main():
     if presentsJson["error"]: customError(presentsJson["error"])
     
     auth()
-
-    profileRevision = 0 
     
     # Get the Winterfest event graph guid from the athena profile.
     rewardGraphId = ""
     reqGetAthena = requestText(session.post(links.profileRequest.format(vars.accountId, "ClientQuestLogin"), headers = vars.headers, data = "{}"))
-    profileRevision = reqGetAthena['profileCommandRevision']
     for item in reqGetAthena['profileChanges'][0]['profile']['items']:
         if reqGetAthena['profileChanges'][0]['profile']['items'][item]["templateId"].lower() == presentsJson["rewardGraphTemplateId"]: rewardGraphId = item
     if not rewardGraphId: customError(f"Could not find the Winterfest Reward Graph on {vars.displayName}'s account. ({presentsJson['rewardGraphTemplateId']})")
 
     # Open Winterfest presents.
-    print("Opening available Winterfest presents...\n")
-    for node in presentsJson["presents"]:
-        vars.headers["X-EpicGames-ProfileRevisions"] = json.dumps([{"profileId":"athena","clientCommandRevision":profileRevision}])
-        reqOpenPresent = requestText(session.post(links.profileRequest.format(vars.accountId, "UnlockRewardNode"), headers = vars.headers, json = {"nodeId": node, "rewardGraphId": rewardGraphId}))
-        profileRevision = reqOpenPresent['profileCommandRevision']
-        print(f"Progress: {round(presentsJson['presents'].index(node)/len(presentsJson['presents'])*100)}%")
+    vars.presentsCount = len(presentsJson['presents'][0]) + len(presentsJson['presents'][1])
+    def openPresent(node):
+        session.post(links.profileRequest.format(vars.accountId, "UnlockRewardNode"), headers = vars.headers, json = {"nodeId": node, "rewardGraphId": rewardGraphId})
+        vars.presentsOpened += 1
+        print(f"Progress: {round((vars.presentsOpened/vars.presentsCount)*100)}%")
+    print(f"Opening available Winterfest {presentsJson['year']} presents...\n")
+    # Open presents that don't have any limitations.
+    threads = [threading.Thread(target=openPresent, args=(node,)) for node in presentsJson["presents"][0]]
+    for thread in threads: thread.start()
+    for thread in threads: thread.join() # Wait until all threads are done.
+    # Open presents that have to be opened after the rest.
+    for node in presentsJson["presents"][1]: openPresent(node)
 
-    print(f"Progress: 100%\n\nSuccessfully opened all currently available Winterfest {presentsJson['year']} presents as {vars.displayName}!\n")
+    print(f"\nSuccessfully opened all currently available Winterfest {presentsJson['year']} presents as {vars.displayName}!\n")
 
 # Start the program
 if __name__ == "__main__": main()
