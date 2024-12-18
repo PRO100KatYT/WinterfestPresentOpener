@@ -4,9 +4,9 @@ This program allows you to automatically open all currently available Winterfest
 
 ---
 ### Changelog:
-What's new in the 1.0.1 update:
-- Made the program open presents significantly faster using threading.
-- Tweaked the program's code a little bit.
+What's new in the 1.0.2 update:
+- Fixed logging in not working:
+  - Changed the basic header from ios to android due to ios no longer being supported.
 ---
 
 ### How to use it?

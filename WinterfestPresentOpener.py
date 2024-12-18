@@ -1,4 +1,4 @@
-version = "1.0.1"
+version = "1.0.2"
 print(f"Winterfest Present Opener v{version} by PRO100KatYT\n")
 try:
     import json
@@ -86,7 +86,7 @@ def auth():
     authFile['refreshToken'], authFile['refresh_expires_at'] = [reqRefreshToken["refresh_token"], reqRefreshToken["refresh_expires_at"]]
     with open(authPath, "w") as getAuthFile: json.dump(authFile, getAuthFile, indent = 2)
     reqExchange = requestText(session.get(links.getOAuth.format("exchange"), headers={"Authorization": f"bearer {reqRefreshToken['access_token']}"}, data={"grant_type": "authorization_code"}), True)
-    reqToken = requestText(session.post(links.getOAuth.format("token"), headers={"Authorization": "basic MzQ0NmNkNzI2OTRjNGE0NDg1ZDgxYjc3YWRiYjIxNDE6OTIwOWQ0YTVlMjVhNDU3ZmI5YjA3NDg5ZDMxM2I0MWE="}, data={"grant_type": "exchange_code", "exchange_code": reqExchange["code"], "token_type": "eg1"}), True)
+    reqToken = requestText(session.post(links.getOAuth.format("token"), headers={"Authorization": "basic M2Y2OWU1NmM3NjQ5NDkyYzhjYzI5ZjFhZjA4YThhMTI6YjUxZWU5Y2IxMjIzNGY1MGE2OWVmYTY3ZWY1MzgxMmU="}, data={"grant_type": "exchange_code", "exchange_code": reqExchange["code"], "token_type": "eg1"}), True)
     vars.accessToken, vars.displayName = [reqToken['access_token'], reqToken['displayName']]
     vars.headers = {"User-Agent": "Fortnite/++Fortnite+Release-19.40-CL-19215531 Windows/10.0.19043.1.768.64bit", "Authorization": f"bearer {vars.accessToken}", "Content-Type": "application/json", "X-EpicGames-Language": "en", "Accept-Language": "en"}
     print(f"Logged in as {vars.displayName}.\n")
