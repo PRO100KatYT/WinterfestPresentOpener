@@ -4,6 +4,10 @@ This program allows you to automatically open all currently available Winterfest
 
 ---
 ### Changelog:
+What's new in the 1.0.3 update (Thanks to [Awsam](https://github.com/Just-Awsam)!):
+- Changed the login to be more user-friendly:
+  - Changed the authorization to use device login and save your login information.
+
 What's new in the 1.0.2 update:
 - Fixed logging in not working:
   - Changed the basic header from ios to android due to ios no longer being supported.
@@ -13,17 +17,12 @@ What's new in the 1.0.2 update:
 
 - If you didn't do it yet, install the python requests module using the pip install requests console command.
 
-- After starting the WinterfestPresentOpener.py for the first time or after you delete the auth.json file, you will be asked if you are logged into your Epic account in your browser. If yes, type 1. If not, type 2.
-
-- After you'll press ENTER, an Epic Games website will open. From there, login if you are not already logged into your Epic account.
+- After starting the WinterfestPresentOpener.py for the first time or after you delete the auth.json file, an Epic Games website will open. From there, login if you are not already logged into your Epic account.
 
 - Then a page should open with content similar to this:
+<img src="https://github.com/user-attachments/assets/a07bdee4-df08-4f5d-8e3b-3f1f7b98459c" alt="Tutorial" width="400" />
 
-```json
-{"redirectUrl":"https://localhost/launcher/authorized?code=930884289b5852842271e9027376a527","authorizationCode":"930884289b5852842271e9027376a527","sid":null}
-```
-
-- Copy the code (e.g. 930884289b5852842271e9027376a527), paste it into the program and press enter.
+- Click on Confirm.
 
 - If all went well, the program will say it has generated the auth.json file successfully.
 
