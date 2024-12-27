@@ -1,28 +1,29 @@
-version = "1.0.2"
+version = "1.0.3"
 print(f"Winterfest Present Opener v{version} by PRO100KatYT\n")
+
 try:
     import json
     import requests
     import os
     from datetime import datetime
-    import webbrowser
     import threading
+    import time
 except Exception as emsg:
     input(f"ERROR: {emsg}. To run this program, please install it.\n\nPress ENTER to close the program.")
     exit()
 
-# Links that will be used in the later part of code.
+# All links centralized in one place
 class links:
-    loginLink1 = "https://www.epicgames.com/id/api/redirect?clientId=34a02cf8f4414e29b15921876da36f9a&responseType=code"
-    loginLink2 = "https://www.epicgames.com/id/logout?redirectUrl=https%3A%2F%2Fwww.epicgames.com%2Fid%2Flogin%3FredirectUrl%3Dhttps%253A%252F%252Fwww.epicgames.com%252Fid%252Fapi%252Fredirect%253FclientId%253D34a02cf8f4414e29b15921876da36f9a%2526responseType%253Dcode"
     getOAuth = "https://account-public-service-prod.ol.epicgames.com/account/api/oauth/{0}"
-    getDeviceAuth = "https://account-public-service-prod.ol.epicgames.com/account/api/public/account/{0}/deviceAuth"
     presentList = "https://pastebin.com/raw/J9xa9MKg"
     profileRequest = "https://fortnite-public-service-prod11.ol.epicgames.com/fortnite/api/game/v2/profile/{0}/client/{1}?profileId=athena"
+    tokenUrl = "https://account-public-service-prod03.ol.epicgames.com/account/api/oauth/token"
+    deviceAuthUrl = "https://account-public-service-prod.ol.epicgames.com/account/api/oauth/deviceAuthorization"
+    deviceAuthFetchUrl = "https://account-public-service-prod.ol.epicgames.com/account/api/public/account/{0}/deviceAuth"
 
 # Global variables
 class vars:
-    accessToken = displayName = headers = accountId = ""
+    headers = accountId = displayName = deviceId = secret = ""
     presentsCount = presentsOpened = 0
 
 # Start a new requests session.
@@ -33,102 +34,178 @@ def customError(text):
     input(f"Error: {text}\n\nPress ENTER to close the program.\n")
     exit()
 
-# Loop input until the response is one of the correct values.
-def validInput(text, values):
-    response = input(f"{text}\n")
-    print()
-    while True:
-        if response in values: break
-        response = input("You provided a wrong value. Please input it again.\n")
-        print()
-    return response
-
-# Get the text from a request and check for errors.
-def requestText(request, bCheckForErrors = True):
-    requestText = json.loads(request.text)
-    if (bCheckForErrors and ("errorMessage" in requestText)): customError(requestText['errorMessage'])
-    return requestText
-
-# Send token request.
-def reqTokenText(loginLink, altLoginLink, authHeader):
-    count = 0
-    while True:
-        count += 1
-        if count > 1: loginLink = altLoginLink
-        webbrowser.open_new_tab(loginLink)
-        print(f"If the program didn't open it, copy this link to your browser: {(loginLink)}\n")
-        reqToken = json.loads(session.post(links.getOAuth.format("token"), headers={"Authorization": f"basic {authHeader}"}, data={"grant_type": "authorization_code", "code": input("Insert the auth code:\n")}).text)
-        if not "errorMessage" in reqToken: break
-        else: input(f"\n{reqToken['errorMessage']}.\nPress ENTER to open the website again and get the code.\n")
-    return reqToken
-
-# Authentication
-def auth():
-    # Create and/or read the auth.json file.
+# Load or save login info to auth.json
+def loadAuth():
     authPath = os.path.join(os.path.split(os.path.abspath(__file__))[0], "auth.json")
-    if not os.path.exists(authPath):
-        isLoggedIn = validInput("Starting to generate the auth.json file.\n\nAre you logged into your Epic account that you would like the program to use in your browser?\nType 1 if yes and press ENTER.\nType 2 if no and press ENTER.\n", ["1", "2"])
-        input("The program is going to open an Epic Games webpage.\nTo continue, press ENTER.\n")
-        if isLoggedIn == "1": loginLink = links.loginLink1
-        else: loginLink = links.loginLink2
-        reqToken = reqTokenText(loginLink, links.loginLink1, "MzRhMDJjZjhmNDQxNGUyOWIxNTkyMTg3NmRhMzZmOWE6ZGFhZmJjY2M3Mzc3NDUwMzlkZmZlNTNkOTRmYzc2Y2Y=")
-        refreshToken, vars.accountId, expirationDate = [reqToken["refresh_token"], reqToken["account_id"], reqToken["refresh_expires_at"]]
-        with open(authPath, "w") as authFile: json.dump({"WARNING": "Don't show anyone the contents of this file, because it contains information with which the program logs into the account.", "authType": "token", "refreshToken": refreshToken, "accountId": vars.accountId, "refresh_expires_at": expirationDate}, authFile, indent = 2)
-        print("\nThe auth.json file was generated successfully.\n")
+    if os.path.exists(authPath):
+        with open(authPath, "r") as authFile:
+            return json.load(authFile)
+    return None
 
-    # Log in to an account.
-    authJson = json.loads(open(authPath, "r").read())
-    expirationDate, refreshToken = [authJson["refresh_expires_at"], authJson["refreshToken"]]
-    if expirationDate < datetime.now().isoformat(): customError("The refresh token has expired. Delete the auth.json file and run this program again to generate a new one. If this problem persists try to log in using the device auth type.")
-    vars.accountId = authJson["accountId"]
-    reqRefreshToken = requestText(session.post(links.getOAuth.format("token"), headers={"Authorization": "basic MzRhMDJjZjhmNDQxNGUyOWIxNTkyMTg3NmRhMzZmOWE6ZGFhZmJjY2M3Mzc3NDUwMzlkZmZlNTNkOTRmYzc2Y2Y="}, data={"grant_type": "refresh_token", "refresh_token": refreshToken}), True)
-    with open(authPath, "r") as getAuthFile: authFile = json.loads(getAuthFile.read())
-    authFile['refreshToken'], authFile['refresh_expires_at'] = [reqRefreshToken["refresh_token"], reqRefreshToken["refresh_expires_at"]]
-    with open(authPath, "w") as getAuthFile: json.dump(authFile, getAuthFile, indent = 2)
-    reqExchange = requestText(session.get(links.getOAuth.format("exchange"), headers={"Authorization": f"bearer {reqRefreshToken['access_token']}"}, data={"grant_type": "authorization_code"}), True)
-    reqToken = requestText(session.post(links.getOAuth.format("token"), headers={"Authorization": "basic M2Y2OWU1NmM3NjQ5NDkyYzhjYzI5ZjFhZjA4YThhMTI6YjUxZWU5Y2IxMjIzNGY1MGE2OWVmYTY3ZWY1MzgxMmU="}, data={"grant_type": "exchange_code", "exchange_code": reqExchange["code"], "token_type": "eg1"}), True)
-    vars.accessToken, vars.displayName = [reqToken['access_token'], reqToken['displayName']]
-    vars.headers = {"User-Agent": "Fortnite/++Fortnite+Release-19.40-CL-19215531 Windows/10.0.19043.1.768.64bit", "Authorization": f"bearer {vars.accessToken}", "Content-Type": "application/json", "X-EpicGames-Language": "en", "Accept-Language": "en"}
-    print(f"Logged in as {vars.displayName}.\n")
+def saveAuth(data):
+    authPath = os.path.join(os.path.split(os.path.abspath(__file__))[0], "auth.json")
+    with open(authPath, "w") as authFile:
+        json.dump(data, authFile, indent=2)
 
-# The main part of the program
+class Auth:
+    @staticmethod
+    def get_new_access_token(account_id, device_id, secret):
+        headers = {
+            "Authorization": "Basic OThmN2U0MmMyZTNhNGY4NmE3NGViNDNmYmI0MWVkMzk6MGEyNDQ5YTItMDAxYS00NTFlLWFmZWMtM2U4MTI5MDFjNGQ3"
+        }
+
+        body = {
+            "grant_type": "device_auth",
+            "account_id": account_id,
+            "device_id": device_id,
+            "secret": secret,
+        }
+
+        response = requests.post(links.tokenUrl, headers=headers, data=body)
+
+        if response.status_code == 200:
+            return response.json().get("access_token")
+        else:
+            customError("Failed to get a new access token.")
+
+    @staticmethod
+    def authenticate():
+        # Check if auth.json exists and load credentials
+        authData = loadAuth()
+        if authData:
+            vars.accountId = authData["accountId"]
+            vars.displayName = authData["displayName"]
+            vars.deviceId = authData["deviceId"]
+            vars.secret = authData["secret"]
+            access_token = Auth.get_new_access_token(vars.accountId, vars.deviceId, vars.secret)
+            vars.headers = {
+                "User-Agent": "Fortnite/++Fortnite+Release-19.40-CL-19215531 Windows/10.0.19043.1.768.64bit",
+                "Authorization": f"bearer {access_token}",
+                "Content-Type": "application/json",
+                "X-EpicGames-Language": "en",
+                "Accept-Language": "en",
+            }
+            print(f"Logged in as {vars.displayName} using device authentication.\n")
+            return
+
+        print("Starting the login process...")
+        auth_placeholder = "Basic OThmN2U0MmMyZTNhNGY4NmE3NGViNDNmYmI0MWVkMzk6MGEyNDQ5YTItMDAxYS00NTFlLWFmZWMtM2U4MTI5MDFjNGQ3"
+        
+        # Step 1: Get client credentials
+        client_response = session.post(
+            links.tokenUrl,
+            headers={"Authorization": auth_placeholder},
+            data={"grant_type": "client_credentials"}
+        )
+
+        if client_response.status_code != 200:
+            customError("Failed to fetch client credentials.")
+        
+        client_credentials = client_response.json()["access_token"]
+
+        # Step 2: Get device authorization
+        device_response = session.post(
+            links.deviceAuthUrl,
+            headers={"Authorization": f"Bearer {client_credentials}"},
+            data={}
+        )
+
+        if device_response.status_code != 200:
+            customError("Failed to fetch device authorization.")
+
+        device_data = device_response.json()
+        device_code = device_data["device_code"]
+        verification_url = device_data["verification_uri_complete"]
+
+        print(f"Please authorize the application by visiting the following URL:\n{verification_url}\n")
+        print("Waiting for device code verification...")
+
+        # Step 3: Poll for access token
+        access_token = None
+        while not access_token:
+            time.sleep(5)  # Retry every 5 seconds
+            token_response = session.post(
+                links.tokenUrl,
+                headers={"Authorization": auth_placeholder},
+                data={"grant_type": "device_code", "device_code": device_code}
+            )
+
+            if token_response.status_code == 200:
+                token_json = token_response.json()
+                access_token = token_json["access_token"]
+                vars.accountId = token_json["account_id"]
+                vars.displayName = token_json["displayName"]
+            elif token_response.status_code != 400:
+                customError(f"Failed to fetch access token: {token_response.text}")
+
+        # Step 4: Fetch device authentication info
+        device_auth_response = session.post(
+            links.deviceAuthFetchUrl.format(vars.accountId),
+            headers={"Authorization": f"Bearer {access_token}"}
+        )
+
+        if device_auth_response.status_code == 200:
+            device_auth_data = device_auth_response.json()
+            vars.deviceId = device_auth_data.get("deviceId")
+            vars.secret = device_auth_data.get("secret")
+
+            # Save login data and device auth info to auth.json
+            saveAuth({
+                "accountId": vars.accountId,
+                "displayName": vars.displayName,
+                "deviceId": vars.deviceId,
+                "secret": vars.secret
+            })
+
+            print(f"Logged in as {vars.displayName} and device auth info saved.\n")
+        else:
+            customError("Failed to fetch device authentication info.")
+
+# Main program logic
 def main():
-    # Get the presents json and check if the event is currently live.
-    presentsJson = requestText(session.get(links.presentList))
-    if not presentsJson: customError("Could not get to the presents json information.")
+    # Get the presents JSON and check if the event is live
+    presentsJson = session.get(links.presentList).json()  # Ensure this fetches the present list
     date = datetime.now()
-    if presentsJson["startTimestamp"] > date.timestamp(): customError(presentsJson["beforeEventMessage"])
-    if presentsJson["endTimestamp"] < date.timestamp(): customError(presentsJson["afterEventMessage"])
-    if presentsJson["alert"]: print(presentsJson["alert"])
-    if presentsJson["error"]: customError(presentsJson["error"])
-    
-    auth()
-    
-    # Get the Winterfest event graph guid from the athena profile.
-    rewardGraphId = ""
-    reqGetAthena = requestText(session.post(links.profileRequest.format(vars.accountId, "ClientQuestLogin"), headers = vars.headers, data = "{}"))
-    for item in reqGetAthena['profileChanges'][0]['profile']['items']:
-        if reqGetAthena['profileChanges'][0]['profile']['items'][item]["templateId"].lower() == presentsJson["rewardGraphTemplateId"]: rewardGraphId = item
-    if not rewardGraphId: customError(f"Could not find the Winterfest Reward Graph on {vars.displayName}'s account. ({presentsJson['rewardGraphTemplateId']})")
+    if presentsJson["startTimestamp"] > date.timestamp():
+        customError(presentsJson["beforeEventMessage"])
+    if presentsJson["endTimestamp"] < date.timestamp():
+        customError(presentsJson["afterEventMessage"])
+    if presentsJson["alert"]:
+        print(presentsJson["alert"])
+    if presentsJson["error"]:
+        customError(presentsJson["error"])
 
-    # Open Winterfest presents.
+    Auth.authenticate()
+
+    # Fetch the Winterfest event graph and process presents
     vars.presentsCount = len(presentsJson['presents'][0]) + len(presentsJson['presents'][1])
-    def openPresent(node):
-        session.post(links.profileRequest.format(vars.accountId, "UnlockRewardNode"), headers = vars.headers, json = {"nodeId": node, "rewardGraphId": rewardGraphId})
-        vars.presentsOpened += 1
-        print(f"Progress: {round((vars.presentsOpened/vars.presentsCount)*100)}%")
-    print(f"Opening available Winterfest {presentsJson['year']} presents...\n")
-    # Open presents that don't have any limitations.
-    threads = [threading.Thread(target=openPresent, args=(node,)) for node in presentsJson["presents"][0]]
-    for thread in threads: thread.start()
-    for thread in threads: thread.join() # Wait until all threads are done.
-    # Open presents that have to be opened after the rest.
-    for node in presentsJson["presents"][1]: openPresent(node)
 
-    print(f"\nSuccessfully opened all currently available Winterfest {presentsJson['year']} presents as {vars.displayName}!\n")
+    print(f"Opening available Winterfest {presentsJson['year']} presents...\n")
+    vars.presentsOpened = 0
+
+    def openPresent(node):
+        session.post(
+            links.profileRequest.format(vars.accountId, "UnlockRewardNode"),
+            headers=vars.headers,
+            json={"nodeId": node, "rewardGraphId": presentsJson['rewardGraphTemplateId']}
+        )
+        vars.presentsOpened += 1
+        print(f"Progress: {round((vars.presentsOpened / vars.presentsCount) * 100)}%")
+
+    threads = [threading.Thread(target=openPresent, args=(node,)) for node in presentsJson["presents"][0]]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    for node in presentsJson["presents"][1]:
+        openPresent(node)
+
+    print(f"\nSuccessfully opened all available Winterfest {presentsJson['year']} presents as {vars.displayName}!\n")
 
 # Start the program
-if __name__ == "__main__": main()
+if __name__ == "__main__":
+    main()
 
 input("Press ENTER to close the program.\n")
 exit()
