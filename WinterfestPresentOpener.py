@@ -36,7 +36,7 @@ def customError(text):
 
 # Get the text from a request and check for errors.
 def requestText(request, bCheckForErrors = True):
-    requestText = request.json
+    requestText = json.loads(request.text)
     if (bCheckForErrors and ("errorMessage" in requestText)): customError(requestText['errorMessage'])
     return requestText
 
