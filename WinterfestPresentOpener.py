@@ -9,7 +9,7 @@ try:
     import threading
     import time
 except Exception as emsg:
-    input(f"ERROR: {emsg}. To run this program, please install it.\n\nPress ENTER to close the program.")
+    input(f"ERROR: {emsg}. To run this program, please install it.\n\nPress ENTER to close the program.\n")
     exit()
 
 # All links centralized in one place
@@ -57,7 +57,7 @@ class Auth:
     @staticmethod
     def get_new_access_token(account_id, device_id, secret):
         headers = {
-            "Authorization": "Basic OThmN2U0MmMyZTNhNGY4NmE3NGViNDNmYmI0MWVkMzk6MGEyNDQ5YTItMDAxYS00NTFlLWFmZWMtM2U4MTI5MDFjNGQ3"
+            "Authorization": "basic OThmN2U0MmMyZTNhNGY4NmE3NGViNDNmYmI0MWVkMzk6MGEyNDQ5YTItMDAxYS00NTFlLWFmZWMtM2U4MTI5MDFjNGQ3"
         }
 
         body = {
@@ -72,7 +72,7 @@ class Auth:
         if response.status_code == 200:
             return response.json().get("access_token")
         else:
-            customError("Failed to get a new access token.")
+            customError("Failed to get a new access token.\n")
 
     @staticmethod
     def authenticate():
@@ -91,11 +91,11 @@ class Auth:
                 "X-EpicGames-Language": "en",
                 "Accept-Language": "en",
             }
-            print(f"Logged in as {vars.displayName} using device authentication.\n")
+            print(f"Logged in as {vars.displayName}\n")
             return
 
-        print("Starting the login process...")
-        auth_placeholder = "Basic OThmN2U0MmMyZTNhNGY4NmE3NGViNDNmYmI0MWVkMzk6MGEyNDQ5YTItMDAxYS00NTFlLWFmZWMtM2U4MTI5MDFjNGQ3"
+        print("Starting the login process...\n")
+        auth_placeholder = "basic OThmN2U0MmMyZTNhNGY4NmE3NGViNDNmYmI0MWVkMzk6MGEyNDQ5YTItMDAxYS00NTFlLWFmZWMtM2U4MTI5MDFjNGQ3"
         
         # Step 1: Get client credentials
         client_response = session.post(
@@ -105,7 +105,7 @@ class Auth:
         )
 
         if client_response.status_code != 200:
-            customError("Failed to fetch client credentials.")
+            customError("Failed to fetch client credentials.\n")
         
         client_credentials = client_response.json()["access_token"]
 
@@ -117,14 +117,14 @@ class Auth:
         )
 
         if device_response.status_code != 200:
-            customError("Failed to fetch device authorization.")
+            customError("Failed to fetch device authorization.\n")
 
         device_data = device_response.json()
         device_code = device_data["device_code"]
         verification_url = device_data["verification_uri_complete"]
 
         print(f"Please authorize the application by visiting the following URL:\n{verification_url}\n")
-        print("Waiting for device code verification...")
+        print("Waiting for device code verification...\n")
 
         # Step 3: Poll for access token
         access_token = None
@@ -165,7 +165,16 @@ class Auth:
 
             print(f"Logged in as {vars.displayName} and device auth info saved.\n")
         else:
-            customError("Failed to fetch device authentication info.")
+            customError("Failed to fetch device authentication info.\n")
+
+        access_token = Auth.get_new_access_token(vars.accountId, vars.deviceId, vars.secret)
+        vars.headers = {
+            "User-Agent": "Fortnite/++Fortnite+Release-19.40-CL-19215531 Windows/10.0.19043.1.768.64bit",
+            "Authorization": f"bearer {access_token}",
+            "Content-Type": "application/json",
+            "X-EpicGames-Language": "en",
+            "Accept-Language": "en",
+        }
 
 # Main program logic
 def main():
