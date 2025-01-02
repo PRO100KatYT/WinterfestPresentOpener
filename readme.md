@@ -4,13 +4,12 @@ This program allows you to automatically open all currently available Winterfest
 
 ---
 ### Changelog:
+What's new in the 1.0.4 update:
+- Fixed a bug which could lead to presents not being actually opened.
+
 What's new in the 1.0.3 update (Thanks to [Awsam](https://github.com/Just-Awsam)!):
 - Changed the login to be more user-friendly:
   - Changed the authorization to use device login and save your login information.
-
-What's new in the 1.0.2 update:
-- Fixed logging in not working:
-  - Changed the basic header from ios to android due to ios no longer being supported.
 ---
 
 ### How to use it?

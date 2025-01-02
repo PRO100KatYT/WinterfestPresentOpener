@@ -1,4 +1,4 @@
-version = "1.0.3"
+version = "1.0.4"
 print(f"Winterfest Present Opener v{version} by PRO100KatYT\n")
 
 try:
@@ -33,6 +33,12 @@ session = requests.Session()
 def customError(text):
     input(f"Error: {text}\n\nPress ENTER to close the program.\n")
     exit()
+
+# Get the text from a request and check for errors.
+def requestText(request, bCheckForErrors = True):
+    requestText = request.json
+    if (bCheckForErrors and ("errorMessage" in requestText)): customError(requestText['errorMessage'])
+    return requestText
 
 # Load or save login info to auth.json
 def loadAuth():
@@ -183,12 +189,15 @@ def main():
     print(f"Opening available Winterfest {presentsJson['year']} presents...\n")
     vars.presentsOpened = 0
 
+    # Get the Winterfest event graph guid from the athena profile.
+    rewardGraphId = ""
+    reqGetAthena = requestText(session.post(links.profileRequest.format(vars.accountId, "ClientQuestLogin"), headers = vars.headers, data = "{}"))
+    for item in reqGetAthena['profileChanges'][0]['profile']['items']:
+        if reqGetAthena['profileChanges'][0]['profile']['items'][item]["templateId"].lower() == presentsJson["rewardGraphTemplateId"].lower(): rewardGraphId = item
+    if not rewardGraphId: customError(f"Could not find the Winterfest Reward Graph on {vars.displayName}'s account. ({presentsJson['rewardGraphTemplateId']})")
+
     def openPresent(node):
-        session.post(
-            links.profileRequest.format(vars.accountId, "UnlockRewardNode"),
-            headers=vars.headers,
-            json={"nodeId": node, "rewardGraphId": presentsJson['rewardGraphTemplateId']}
-        )
+        session.post(links.profileRequest.format(vars.accountId, "UnlockRewardNode"), headers=vars.headers,json={"nodeId": node, "rewardGraphId": rewardGraphId})
         vars.presentsOpened += 1
         print(f"Progress: {round((vars.presentsOpened / vars.presentsCount) * 100)}%")
 
